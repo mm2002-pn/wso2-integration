@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SOAPToJSONSequence" xmlns="http://ws.apache.org/ns/synapse">
+
+    <log level="custom">
+        <property name="LEGACY" value="SOAP → JSON"/>
+    </log>
+
+    <!-- Log SOAP Response -->
+    <log level="full">
+        <property name="SOAP_RESPONSE" value="Received SOAP response"/>
+    </log>
+
+    <!-- Extraire le body SOAP -->
+    <property name="response"
+              expression="//*[local-name()='Body']/*[1]"
+              scope="default"/>
+
+    <!-- Convertir en JSON -->
+    <payloadFactory media-type="json">
+        <format>
+            {
+              "status": "$1",
+              "message": "$2"
+            }
+        </format>
+        <args>
+            <arg expression="//*[local-name()='status']/text()"/>
+            <arg expression="//*[local-name()='message']/text()"/>
+        </args>
+    </payloadFactory>
+
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+
+</sequence>

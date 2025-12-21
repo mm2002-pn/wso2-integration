@@ -1,0 +1,36 @@
+{
+    // Java Configuration
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.home": "C:\\Program Files\\Java\\jdk-17",
+
+    // Maven Configuration
+    "maven.executable.path": "mvn",
+    "maven.terminal.useJavaHome": true,
+
+    // WSO2 MI Configuration (ajuster le chemin selon votre installation)
+    "wso2mi.runtime.location": "C:\\wso2mi-4.2.0",
+
+    // Terminal
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+
+    // Files
+    "files.associations": {
+        "*.xml": "xml"
+    },
+
+    // Editor
+    "editor.formatOnSave": true,
+    "[xml]": {
+        "editor.defaultFormatter": "redhat.vscode-xml"
+    },
+
+    // Exclude
+    "files.exclude": {
+        "**/.git": true,
+        "**/node_modules": true,
+        "**/target": true,
+        "**/.settings": true,
+        "**/.classpath": true,
+        "**/.project": true
+    }
+}

@@ -1,0 +1,274 @@
+### Fichier de tests API pour VS Code REST Client
+### Installer l'extension "REST Client" pour utiliser ce fichier
+### Cliquer sur "Send Request" au-dessus de chaque requête
+
+@baseUrl = http://localhost:8290
+@legacyUrl = {{baseUrl}}/api/legacy/billing
+@restUrl = {{baseUrl}}/api/v2/billing
+
+### Variables (seront mises à jour automatiquement)
+@token = your-jwt-token-here
+@invoiceId = 1
+
+################################################################################
+# HEALTH CHECK
+################################################################################
+
+### Health Check WSO2 Gateway
+GET {{baseUrl}}/api/health
+
+################################################################################
+# LEGACY API (SOAP → JSON Conversion)
+################################################################################
+
+### 1. Create Invoice via Legacy SOAP
+# @name createLegacyInvoice
+POST {{legacyUrl}}/invoices
+Content-Type: application/json
+
+{
+  "clientId": 1001,
+  "amount": 1500.00,
+  "description": "Test Invoice via WSO2 Legacy"
+}
+
+### 2. Get Invoice via Legacy SOAP
+GET {{legacyUrl}}/invoices/1
+
+### 3. Pay Invoice via Legacy SOAP
+PUT {{legacyUrl}}/invoices/1/pay
+Content-Type: application/json
+
+{
+  "paymentMethod": "TRANSFER"
+}
+
+################################################################################
+# REST v2 API (Passthrough with JWT)
+################################################################################
+
+### 1. Login to get JWT token
+# @name login
+POST {{restUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### 2. Extract token (automatic)
+@token = {{login.response.body.data.token}}
+
+### 3. Create Invoice with JWT
+# @name createRestInvoice
+POST {{restUrl}}/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "clientId": 1001,
+  "amount": 2500.00,
+  "description": "Test Invoice via WSO2 REST v2"
+}
+
+### 4. Get Invoice with JWT
+GET {{restUrl}}/invoices/{{invoiceId}}
+Authorization: Bearer {{token}}
+
+### 5. Get Client Invoices
+GET {{restUrl}}/clients/1001/invoices
+Authorization: Bearer {{token}}
+
+### 6. Pay Invoice with JWT
+PUT {{restUrl}}/invoices/{{invoiceId}}/pay
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "CARD"
+}
+
+### 7. Calculate Client Total
+GET {{restUrl}}/clients/1001/total
+Authorization: Bearer {{token}}
+
+### 8. Download Invoice PDF
+GET {{restUrl}}/invoices/{{invoiceId}}/pdf
+Authorization: Bearer {{token}}
+
+### 9. Delete Invoice
+DELETE {{restUrl}}/invoices/{{invoiceId}}
+Authorization: Bearer {{token}}
+
+################################################################################
+# TEST SCENARIOS
+################################################################################
+
+### Scenario 1: Complete Legacy Flow
+# 1. Create invoice
+# @name scenario1Create
+POST {{legacyUrl}}/invoices
+Content-Type: application/json
+
+{
+  "clientId": 2001,
+  "amount": 3500.00,
+  "description": "Scenario 1 - Legacy"
+}
+
+### 2. Get the created invoice
+@scenario1InvoiceId = {{scenario1Create.response.body.data.invoiceId}}
+GET {{legacyUrl}}/invoices/{{scenario1InvoiceId}}
+
+### 3. Pay the invoice
+PUT {{legacyUrl}}/invoices/{{scenario1InvoiceId}}/pay
+Content-Type: application/json
+
+{
+  "paymentMethod": "CASH"
+}
+
+###
+
+### Scenario 2: Complete REST v2 Flow with JWT
+# 1. Login
+# @name scenario2Login
+POST {{restUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### 2. Create invoice
+@scenario2Token = {{scenario2Login.response.body.data.token}}
+
+# @name scenario2Create
+POST {{restUrl}}/invoices
+Authorization: Bearer {{scenario2Token}}
+Content-Type: application/json
+
+{
+  "clientId": 2002,
+  "amount": 4500.00,
+  "description": "Scenario 2 - REST v2"
+}
+
+### 3. Get invoice
+@scenario2InvoiceId = {{scenario2Create.response.body.data.id}}
+GET {{restUrl}}/invoices/{{scenario2InvoiceId}}
+Authorization: Bearer {{scenario2Token}}
+
+### 4. Pay invoice
+PUT {{restUrl}}/invoices/{{scenario2InvoiceId}}/pay
+Authorization: Bearer {{scenario2Token}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "TRANSFER"
+}
+
+### 5. Download PDF
+GET {{restUrl}}/invoices/{{scenario2InvoiceId}}/pdf
+Authorization: Bearer {{scenario2Token}}
+
+################################################################################
+# ERROR CASES
+################################################################################
+
+### Error: Invalid Invoice ID (Legacy)
+GET {{legacyUrl}}/invoices/99999
+
+### Error: Invalid Invoice ID (REST v2)
+GET {{restUrl}}/invoices/99999
+Authorization: Bearer {{token}}
+
+### Error: Missing JWT token
+GET {{restUrl}}/invoices/1
+
+### Error: Invalid JWT token
+GET {{restUrl}}/invoices/1
+Authorization: Bearer invalid-token-here
+
+### Error: Invalid payment data
+PUT {{legacyUrl}}/invoices/1/pay
+Content-Type: application/json
+
+{
+  "paymentMethod": "INVALID_METHOD"
+}
+
+################################################################################
+# BACKEND DIRECT ACCESS (for comparison)
+################################################################################
+
+### Direct SOAP Backend (bypassing WSO2)
+POST http://localhost:8081/billing/ws
+Content-Type: text/xml
+SOAPAction: CreateInvoice
+
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:soap="http://example.com/billing/soap">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <soap:CreateInvoiceRequest>
+         <soap:clientId>1001</soap:clientId>
+         <soap:amount>1000.00</soap:amount>
+         <soap:description>Direct SOAP call</soap:description>
+      </soap:CreateInvoiceRequest>
+   </soapenv:Body>
+</soapenv:Envelope>
+
+### Direct REST Backend (bypassing WSO2)
+# 1. Login
+# @name directLogin
+POST http://localhost:8081/billing/api/v2/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### 2. Create invoice directly
+@directToken = {{directLogin.response.body.data.token}}
+
+POST http://localhost:8081/billing/api/v2/invoices
+Authorization: Bearer {{directToken}}
+Content-Type: application/json
+
+{
+  "clientId": 1001,
+  "amount": 1000.00,
+  "description": "Direct REST call"
+}
+
+################################################################################
+# BRVM Scraper Integration (if available)
+################################################################################
+
+### Get BRVM Indices
+GET http://localhost:5000/api/market/indices
+
+### Get BRVM Stocks
+GET http://localhost:5000/api/market/stocks
+
+### Get Specific Stock
+GET http://localhost:5000/api/market/stocks/BOAC
+
+################################################################################
+# NOTES
+################################################################################
+
+# Workflow:
+# 1. Démarrer Billing Service (IntelliJ) → :8081
+# 2. Démarrer WSO2 MI (VS Code) → :8290
+# 3. Cliquer "Send Request" sur les tests ci-dessus
+#
+# Tips:
+# - Les variables @token sont extraites automatiquement
+# - Utiliser Ctrl+Alt+E pour changer d'environnement
+# - Les réponses s'affichent dans un panneau à droite
+# - Sauvegarder les réponses avec Ctrl+Alt+S

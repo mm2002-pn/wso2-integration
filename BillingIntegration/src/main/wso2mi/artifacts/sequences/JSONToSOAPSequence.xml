@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="JSONToSOAPSequence" xmlns="http://ws.apache.org/ns/synapse">
+
+    <log level="custom">
+        <property name="LEGACY" value="JSON → SOAP"/>
+        <property name="METHOD" expression="$ctx:REST_METHOD"/>
+        <property name="PATH" expression="get-property('uri.var.path')"/>
+    </log>
+
+    <switch source="$ctx:REST_METHOD">
+
+        <!-- CREATE INVOICE -->
+        <case regex="POST">
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:bil="http://example.com/billing/soap">
+                        <soapenv:Body>
+                            <bil:CreateInvoiceRequest>
+                                <bil:clientId>$1</bil:clientId>
+                                <bil:amount>$2</bil:amount>
+                                <bil:description>$3</bil:description>
+                            </bil:CreateInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="json" expression="$.clientId"/>
+                    <arg evaluator="json" expression="$.amount"/>
+                    <arg evaluator="json" expression="$.description"/>
+                </args>
+            </payloadFactory>
+        </case>
+
+        <!-- GET INVOICE -->
+        <case regex="GET">
+            <property name="invoiceId"
+                      expression="fn:substring-after(get-property('uri.var.path'),'invoices/')"/>
+
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:bil="http://example.com/billing/soap">
+                        <soapenv:Body>
+                            <bil:GetInvoiceRequest>
+                                <bil:invoiceId>$1</bil:invoiceId>
+                            </bil:GetInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg expression="get-property('invoiceId')"/>
+                </args>
+            </payloadFactory>
+        </case>
+
+        <!-- PAY INVOICE -->
+        <case regex="PUT">
+            <property name="invoiceId"
+                      expression="fn:substring-before(fn:substring-after(get-property('uri.var.path'),'invoices/'),'/pay')"/>
+
+            <!-- Force message build as JSON before extracting -->
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="paymentMethod" expression="json-eval($.paymentMethod)"/>
+
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:bil="http://example.com/billing/soap">
+                        <soapenv:Body>
+                            <bil:PayInvoiceRequest>
+                                <bil:invoiceId>$1</bil:invoiceId>
+                                <bil:paymentMethod>$2</bil:paymentMethod>
+                            </bil:PayInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg expression="get-property('invoiceId')"/>
+                    <arg expression="get-property('paymentMethod')"/>
+                </args>
+            </payloadFactory>
+        </case>
+
+    </switch>
+
+    <!-- Log SOAP Request -->
+    <log level="full">
+        <property name="SOAP_REQUEST" value="About to send SOAP request"/>
+    </log>
+
+    <!-- SOAP headers et nettoyage du path -->
+    <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+    <property name="messageType" value="text/xml" scope="axis2"/>
+    <property name="ContentType" value="text/xml" scope="axis2"/>
+    <property name="SOAPAction" value="" scope="transport"/>
+
+</sequence>

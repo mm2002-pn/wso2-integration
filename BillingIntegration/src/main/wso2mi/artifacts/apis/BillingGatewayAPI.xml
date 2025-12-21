@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api" name="BillingGatewayAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST GET PUT DELETE" uri-template="/legacy/billing/{+path}">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** Billing Legacy API Request ***" />
+                <property name="URI" expression="get-property('To')" />
+                <property name="METHOD" expression="get-property('REST_METHOD')" />
+            </log>
+
+            <!-- Extract the path after /legacy/billing/ -->
+            <property name="ORIGINAL_PATH" expression="get-property('To')" scope="default" />
+
+            <!-- Route to legacy SOAP → REST conversion -->
+            <sequence key="JSONToSOAPSequence" />
+
+            <!-- Call SOAP backend -->
+            <call>
+                <endpoint key="SOAPBackendEndpoint" />
+            </call>
+
+            <!-- Convert SOAP response back to JSON -->
+            <sequence key="SOAPToJSONSequence" />
+
+            <respond />
+        </inSequence>
+        <outSequence>
+            <send />
+        </outSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- REST v2 - Auth Login -->
+    <resource methods="POST" uri-template="/v2/billing/auth/login">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Auth Login ***" />
+            </log>
+
+            <!-- Passthrough JSON -->
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="ContentType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="POST" scope="axis2" />
+
+            <!-- 🔥 LA LIGNE MAGIQUE -->
+            <property name="REST_URL_POSTFIX" value="/billing/api/v2/auth/login" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+
+            <respond />
+        </inSequence>
+
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+
+    <!-- REST v2 - Create Invoice -->
+    <resource methods="POST" uri-template="/v2/billing/invoices">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Create Invoice ***" />
+            </log>
+
+            <!-- Passthrough JSON -->
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="ContentType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="POST" scope="axis2" />
+
+            <property name="REST_URL_POSTFIX" value="/billing/api/v2/invoices" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- REST v2 - Get Invoice -->
+    <resource methods="GET" uri-template="/v2/billing/invoices/{id}">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Get Invoice ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+
+            <property name="REST_URL_POSTFIX"
+                expression="fn:concat('/billing/api/v2/invoices/', get-property('uri.var.id'))" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- REST v2 - Pay Invoice -->
+    <resource methods="PUT" uri-template="/v2/billing/invoices/{id}/pay">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Pay Invoice ***" />
+            </log>
+
+            <!-- Passthrough JSON -->
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="ContentType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="PUT" scope="axis2" />
+
+            <property name="REST_URL_POSTFIX"
+                expression="fn:concat('/billing/api/v2/invoices/', get-property('uri.var.id'), '/pay')" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- REST v2 - Get Client Invoices -->
+    <resource methods="GET" uri-template="/v2/billing/clients/{clientId}/invoices">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Get Client Invoices ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+
+            <property name="REST_URL_POSTFIX"
+                expression="fn:concat('/billing/api/v2/clients/', get-property('uri.var.clientId'), '/invoices')" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- REST v2 - Get Client Total -->
+    <resource methods="GET" uri-template="/v2/billing/clients/{clientId}/total">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** REST v2 - Get Client Total ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+
+            <property name="REST_URL_POSTFIX"
+                expression="fn:concat('/billing/api/v2/clients/', get-property('uri.var.clientId'), '/total')" scope="axis2" />
+
+            <call>
+                <endpoint key="RESTBackendEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- BRVM Market Data - Get Indices -->
+    <resource methods="GET" uri-template="/market/indices">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** BRVM - Get Indices ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+            <property name="REST_URL_POSTFIX" value="/api/market/indices" scope="axis2" />
+
+            <call>
+                <endpoint key="BRVMScraperEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- BRVM Market Data - Get Stocks -->
+    <resource methods="GET" uri-template="/market/stocks">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** BRVM - Get Stocks ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+            <property name="REST_URL_POSTFIX" value="/api/market/stocks" scope="axis2" />
+
+            <call>
+                <endpoint key="BRVMScraperEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <!-- BRVM Market Data - Get Stock by Symbol -->
+    <resource methods="GET" uri-template="/market/stocks/{symbol}">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** BRVM - Get Stock by Symbol ***" />
+            </log>
+
+            <property name="messageType" value="application/json" scope="axis2" />
+            <property name="Accept" value="application/json" scope="transport" />
+            <property name="HTTP_METHOD" value="GET" scope="axis2" />
+            <property name="REST_URL_POSTFIX"
+                expression="fn:concat('/api/market/stocks/', get-property('uri.var.symbol'))" scope="axis2" />
+
+            <call>
+                <endpoint key="BRVMScraperEndpoint" />
+            </call>
+            <respond />
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence" />
+        </faultSequence>
+    </resource>
+
+    <resource methods="GET" uri-template="/health">
+        <inSequence>
+            <payloadFactory media-type="json">
+                <format> { "status": "healthy", "service": "WSO2 Billing Gateway", "version":
+                    "1.0.0", "endpoints": { "legacy": "/api/legacy/billing", "v2": "/api/v2/billing", "market": "/api/market"
+                    } } </format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="200" scope="axis2" />
+            <respond />
+        </inSequence>
+    </resource>
+</api>

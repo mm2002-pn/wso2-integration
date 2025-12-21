@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+        "wso2.micro-integrator",
+        "vscjava.vscode-java-pack",
+        "redhat.vscode-xml",
+        "humao.rest-client",
+        "emilast.logfilehighlighter",
+        "shd101wyy.markdown-preview-enhanced"
+    ]
+}

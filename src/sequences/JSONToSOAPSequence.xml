@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="JSONToSOAPSequence" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="MESSAGE" value="Converting JSON to SOAP"/>
+    </log>
+
+    <!-- Get request details -->
+    <property name="HTTP_METHOD" expression="get-property('axis2', 'HTTP_METHOD')" scope="default"/>
+    <property name="REQUEST_PATH" expression="get-property('To')" scope="default"/>
+
+    <!-- Extract operation from path -->
+    <switch source="get-property('HTTP_METHOD')">
+        <!-- POST: Create Invoice -->
+        <case regex="POST">
+            <log level="custom">
+                <property name="OPERATION" value="CreateInvoice"/>
+            </log>
+
+            <!-- Extract JSON payload -->
+            <property name="clientId" expression="$.clientId" scope="default" type="STRING"/>
+            <property name="amount" expression="$.amount" scope="default" type="STRING"/>
+            <property name="description" expression="$.description" scope="default" type="STRING"/>
+
+            <!-- Build SOAP request -->
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:soap="http://example.com/billing/soap">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <soap:CreateInvoiceRequest>
+                                <soap:clientId>$1</soap:clientId>
+                                <soap:amount>$2</soap:amount>
+                                <soap:description>$3</soap:description>
+                            </soap:CreateInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('clientId')"/>
+                    <arg evaluator="xml" expression="get-property('amount')"/>
+                    <arg evaluator="xml" expression="get-property('description')"/>
+                </args>
+            </payloadFactory>
+
+            <property name="SOAPAction" value="CreateInvoice" scope="transport"/>
+            <property name="messageType" value="text/xml" scope="axis2"/>
+        </case>
+
+        <!-- GET: GetInvoice -->
+        <case regex="GET">
+            <log level="custom">
+                <property name="OPERATION" value="GetInvoice"/>
+            </log>
+
+            <!-- Extract invoice ID from path -->
+            <property name="invoiceId"
+                      expression="fn:substring-after(get-property('REQUEST_PATH'), 'invoices/')"
+                      scope="default"/>
+
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:soap="http://example.com/billing/soap">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <soap:GetInvoiceRequest>
+                                <soap:invoiceId>$1</soap:invoiceId>
+                            </soap:GetInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('invoiceId')"/>
+                </args>
+            </payloadFactory>
+
+            <property name="SOAPAction" value="GetInvoice" scope="transport"/>
+            <property name="messageType" value="text/xml" scope="axis2"/>
+        </case>
+
+        <!-- PUT: PayInvoice -->
+        <case regex="PUT">
+            <log level="custom">
+                <property name="OPERATION" value="PayInvoice"/>
+            </log>
+
+            <property name="invoiceId"
+                      expression="fn:tokenize(get-property('REQUEST_PATH'), '/')[last()-1]"
+                      scope="default"/>
+            <property name="paymentMethod" expression="$.paymentMethod" scope="default" type="STRING"/>
+
+            <payloadFactory media-type="xml">
+                <format>
+                    <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                                      xmlns:soap="http://example.com/billing/soap">
+                        <soapenv:Header/>
+                        <soapenv:Body>
+                            <soap:PayInvoiceRequest>
+                                <soap:invoiceId>$1</soap:invoiceId>
+                                <soap:paymentMethod>$2</soap:paymentMethod>
+                            </soap:PayInvoiceRequest>
+                        </soapenv:Body>
+                    </soapenv:Envelope>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('invoiceId')"/>
+                    <arg evaluator="xml" expression="get-property('paymentMethod')"/>
+                </args>
+            </payloadFactory>
+
+            <property name="SOAPAction" value="PayInvoice" scope="transport"/>
+            <property name="messageType" value="text/xml" scope="axis2"/>
+        </case>
+
+        <default>
+            <log level="custom">
+                <property name="ERROR" value="Unsupported HTTP method"/>
+            </log>
+        </default>
+    </switch>
+</sequence>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ErrorHandlerSequence" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="full">
+        <property name="MESSAGE" value="*** Error Handler Sequence ***"/>
+        <property name="ERROR_CODE" expression="get-property('ERROR_CODE')"/>
+        <property name="ERROR_MESSAGE" expression="get-property('ERROR_MESSAGE')"/>
+    </log>
+
+    <!-- Build error response -->
+    <payloadFactory media-type="json">
+        <format>
+            {
+                "success": false,
+                "timestamp": "$1",
+                "error": "$2",
+                "message": "$3",
+                "path": "$4"
+            }
+        </format>
+        <args>
+            <arg evaluator="xml" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd&#39;T&#39;HH:mm:ss')"/>
+            <arg evaluator="xml" expression="get-property('ERROR_CODE')"/>
+            <arg evaluator="xml" expression="get-property('ERROR_MESSAGE')"/>
+            <arg evaluator="xml" expression="get-property('To')"/>
+        </args>
+    </payloadFactory>
+
+    <property name="HTTP_SC" value="500" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+
+    <respond/>
+</sequence>

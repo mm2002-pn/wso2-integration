@@ -1,0 +1,45 @@
+# WSO2 Micro Integrator Configuration
+
+[server]
+hostname = "localhost"
+node_ip = "127.0.0.1"
+offset = 0
+
+[keystore.tls]
+file_name = "wso2carbon.jks"
+type = "JKS"
+password = "wso2carbon"
+alias = "wso2carbon"
+key_password = "wso2carbon"
+
+[[datasource]]
+id = "WSO2_CARBON_DB"
+url = "jdbc:h2:./repository/database/WSO2CARBON_DB;DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=60000"
+username = "wso2carbon"
+password = "wso2carbon"
+driver = "org.h2.Driver"
+pool_options.maxActive = 50
+pool_options.maxWait = 60000
+pool_options.testOnBorrow = true
+
+[mediation]
+synapse.core.axis2.repo = "./repository/deployment/server/synapse-configs"
+synapse.server.config_loc = "./repository/deployment/server/synapse-configs/default/synapse.xml"
+
+[transport.http]
+listener.enable = true
+listener.port = 8290
+listener.wsdl_epr_prefix = "$ref{server.hostname}"
+
+[transport.https]
+listener.enable = true
+listener.port = 8253
+
+# Management API
+[[management_api.handler]]
+name = "health"
+type = "health"
+
+# Logging
+[log]
+level = "INFO"

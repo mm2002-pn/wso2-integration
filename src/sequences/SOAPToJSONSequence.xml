@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SOAPToJSONSequence" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="MESSAGE" value="Converting SOAP to JSON"/>
+    </log>
+
+    <!-- Remove SOAP envelope and extract body -->
+    <property name="messageType" value="application/json" scope="axis2"/>
+
+    <!-- Convert XML to JSON -->
+    <property name="DISABLE_SMOOKS_RESULT_PAYLOAD" value="true" scope="axis2"/>
+
+    <!-- Build JSON response from SOAP response -->
+    <script language="js"><![CDATA[
+        var payload = mc.getPayloadXML();
+        var ns = new Namespace("http://example.com/billing/soap");
+
+        var response = {};
+
+        try {
+            // Check for CreateInvoiceResponse
+            if (payload..ns::CreateInvoiceResponse.length() > 0) {
+                var soapResp = payload..ns::CreateInvoiceResponse;
+                response = {
+                    "success": soapResp.ns::status.toString() === "SUCCESS",
+                    "message": soapResp.ns::message.toString(),
+                    "data": {
+                        "invoiceId": parseInt(soapResp.ns::invoiceId.toString())
+                    }
+                };
+            }
+            // Check for GetInvoiceResponse
+            else if (payload..ns::GetInvoiceResponse.length() > 0) {
+                var soapResp = payload..ns::GetInvoiceResponse;
+                var invoice = soapResp.ns::invoice;
+
+                response = {
+                    "success": true,
+                    "message": soapResp.ns::message.toString(),
+                    "data": {
+                        "id": parseInt(invoice.ns::id.toString()),
+                        "clientId": parseInt(invoice.ns::clientId.toString()),
+                        "amount": parseFloat(invoice.ns::amount.toString()),
+                        "description": invoice.ns::description.toString(),
+                        "dateEmission": invoice.ns::dateEmission.toString(),
+                        "datePaiement": invoice.ns::datePaiement.toString(),
+                        "status": invoice.ns::status.toString(),
+                        "paymentMethod": invoice.ns::paymentMethod.toString()
+                    }
+                };
+            }
+            // Check for PayInvoiceResponse
+            else if (payload..ns::PayInvoiceResponse.length() > 0) {
+                var soapResp = payload..ns::PayInvoiceResponse;
+                response = {
+                    "success": soapResp.ns::status.toString() === "SUCCESS",
+                    "message": soapResp.ns::message.toString()
+                };
+            }
+            else {
+                response = {
+                    "success": false,
+                    "message": "Unknown SOAP response"
+                };
+            }
+        } catch (e) {
+            response = {
+                "success": false,
+                "message": "Error parsing SOAP response: " + e.message
+            };
+        }
+
+        mc.setPayloadJSON(response);
+    ]]></script>
+
+    <property name="ContentType" value="application/json" scope="axis2"/>
+</sequence>

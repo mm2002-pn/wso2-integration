@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api" name="BillingGatewayAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST GET PUT DELETE" uri-template="/legacy/billing/**">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** Billing Legacy API Request ***"/>
+                <property name="URI" expression="get-property('To')"/>
+                <property name="METHOD" expression="get-property('REST_METHOD')"/>
+            </log>
+
+            <!-- Extract the path after /legacy/billing/ -->
+            <property name="ORIGINAL_PATH" expression="get-property('To')" scope="default"/>
+
+            <!-- Route to legacy SOAP → REST conversion -->
+            <sequence key="JSONToSOAPSequence"/>
+
+            <!-- Call SOAP backend -->
+            <call>
+                <endpoint key="SOAPBackendEndpoint"/>
+            </call>
+
+            <!-- Convert SOAP response back to JSON -->
+            <sequence key="SOAPToJSONSequence"/>
+
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence"/>
+        </faultSequence>
+    </resource>
+
+    <resource methods="POST GET PUT DELETE" uri-template="/v2/billing/**">
+        <inSequence>
+            <log level="custom">
+                <property name="MESSAGE" value="*** Billing REST v2 API Request ***"/>
+                <property name="URI" expression="get-property('To')"/>
+                <property name="METHOD" expression="get-property('REST_METHOD')"/>
+            </log>
+
+            <!-- Passthrough to REST backend -->
+            <property name="REST_URL_POSTFIX"
+                      expression="fn:concat('/api/v2', fn:substring-after(get-property('To'), '/api/v2/billing'))"
+                      scope="axis2"/>
+
+            <call>
+                <endpoint key="RESTBackendEndpoint"/>
+            </call>
+
+            <respond/>
+        </inSequence>
+        <outSequence>
+            <send/>
+        </outSequence>
+        <faultSequence>
+            <sequence key="ErrorHandlerSequence"/>
+        </faultSequence>
+    </resource>
+
+    <resource methods="GET" uri-template="/health">
+        <inSequence>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "status": "healthy",
+                        "service": "WSO2 Billing Gateway",
+                        "version": "1.0.0",
+                        "endpoints": {
+                            "legacy": "/api/legacy/billing",
+                            "v2": "/api/v2/billing"
+                        }
+                    }
+                </format>
+            </payloadFactory>
+            <property name="HTTP_SC" value="200" scope="axis2"/>
+            <respond/>
+        </inSequence>
+    </resource>
+</api>
