@@ -4,31 +4,31 @@ info:
   description: API Definition of BillingGatewayAPI
   version: 1.0.0
 servers:
-- url: http://localhost:8290/api
-- url: https://localhost:8253/api
+  - url: http://localhost:8290/api
+  - url: https://localhost:8253/api
 paths:
   /legacy/billing/{+path}:
     get:
       parameters:
-      - name: +path
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: +path
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         default:
           description: Default response
     put:
       parameters:
-      - name: +path
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: +path
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       requestBody:
         description: Sample Payload
         content:
@@ -49,13 +49,13 @@ paths:
           description: Default response
     post:
       parameters:
-      - name: +path
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: +path
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       requestBody:
         description: Sample Payload
         content:
@@ -76,13 +76,13 @@ paths:
           description: Default response
     delete:
       parameters:
-      - name: +path
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: +path
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         default:
           description: Default response
@@ -129,26 +129,26 @@ paths:
   /v2/billing/invoices/{id}:
     get:
       parameters:
-      - name: id
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: id
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         default:
           description: Default response
   /v2/billing/invoices/{id}/pay:
     put:
       parameters:
-      - name: id
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: id
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       requestBody:
         description: Sample Payload
         content:
@@ -170,26 +170,47 @@ paths:
   /v2/billing/clients/{clientId}/invoices:
     get:
       parameters:
-      - name: clientId
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: clientId
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         default:
           description: Default response
   /v2/billing/clients/{clientId}/total:
     get:
       parameters:
-      - name: clientId
-        in: path
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: clientId
+          in: path
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        default:
+          description: Default response
+  /market/indices:
+    get:
+      responses:
+        default:
+          description: Default response
+  /market/stocks:
+    get:
+      responses:
+        default:
+          description: Default response
+  /market/stocks/{symbol}:
+    get:
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         default:
           description: Default response
