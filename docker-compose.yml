@@ -24,6 +24,8 @@ services:
       - "8080:8080"
     networks:
       - integration-network
+    depends_on:
+      - postgres
 
   brvm-scraper:
     build: ../brvm-scraper-service
@@ -52,3 +54,6 @@ services:
 networks:
   integration-network:
     driver: bridge
+
+volumes:
+  postgres_data:
